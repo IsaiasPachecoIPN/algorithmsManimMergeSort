@@ -1,4 +1,4 @@
-
+from manim import *
 
 #Default values
 unsorted_arr = []
@@ -21,18 +21,14 @@ def readInitData( file ):
                 unsorted_arr = arr[1].split(",")
                 unsorted_arr = [ int(x) for x in unsorted_arr  ]
 
-def merge_sort(lista):
-    if len(lista) <= 1:
-        return lista
-
-    #print("lista: ", lista)
-
-    izquierda = merge_sort(lista[:len(lista) // 2])
-    derecha = merge_sort(lista[len(lista) // 2:])
-
-    return merge(izquierda, derecha)
-
+merge_counter = 0
+merge_counter_steps_dic = {}
 def merge(lista_izquierda, lista_derecha):
+
+    global merge_counter
+    global merge_counter_steps_dic
+
+    merge_counter += 1
     resultado = []
 
     #mostrar las listas en la misma linea
@@ -56,17 +52,12 @@ def merge(lista_izquierda, lista_derecha):
     resultado += lista_izquierda[i:]
     resultado += lista_derecha[j:]
 
+    #print("resultado: ", resultado)
+    merge_counter_steps_dic[merge_counter] = resultado
     return resultado
 
-counter = 0
-a_izq_arr = []
-a_der_arr = []
-
-const_l = "L"
-const_r = "P"
-
 step_counter = 0
-dic_steps = {}
+merge_sort_steps_dic = {}
 
 def createMergeSortSteps( lista ):
     """
@@ -76,12 +67,10 @@ def createMergeSortSteps( lista ):
     #     print("direction: ", direction)
 
     global step_counter
-    global dic_steps
+    global merge_sort_steps_dic
     step_counter += 1
 
-    dic_steps[step_counter] = [lista]
-
-    #print("lista: {} direccion {} counter {}", lista, direction, step_counter)
+    merge_sort_steps_dic[step_counter] = [lista]
 
     if len(lista)<=1:
         return lista
@@ -89,24 +78,39 @@ def createMergeSortSteps( lista ):
     L = createMergeSortSteps( lista[:len(lista)//2])
     R = createMergeSortSteps( lista[len(lista)//2:])
 
-    createMergeSteps( L, R )
+    return merge(L, R)
 
-def createMergeSteps( lista_izquierda, lista_derecha ):
-    print("lista_izquierda: {} lista_derecha: {}".format(lista_izquierda, lista_derecha))
+def animateMergeSortSteps( scene, steps_dic ):
 
+    first_elem = steps_dic[1]
+    print("first_elem: ", first_elem)
 
-def main():
-    global counter
-    global a_izq_arr
-    global a_der_arr
-    readInitData("initdata")
-    print(unsorted_arr)
-    #print( merge_sort(unsorted_arr) )
-    createMergeSortSteps( unsorted_arr[:len(unsorted_arr)//2] )
-    print(dic_steps)
-    # createMergeSortSteps( unsorted_arr[len(unsorted_arr)//2:] )
-    # print(dic_steps)
-    # print(a_izq_arr)
-    # print(a_der_arr)
-if __name__ == "__main__":
-    main()
+    mobjects_arr = []
+    for i in steps_dic[1][0]:
+       result = VGroup( Text(str(i)) )
+       box = Rectangle(  # create a box
+       height=0.5, width=0.8, fill_color=BLUE, 
+       fill_opacity=0.5, stroke_color=BLUE,)
+       text = Text(str(i))
+
+       result.add(text, box)
+       mobjects_arr.append(result)
+
+    for i in range(len(mobjects_arr)-1):
+        mobjects_arr[i+1].next_to(mobjects_arr[i], RIGHT)
+
+    scene.play(
+        AnimationGroup(
+            *[
+                Write(mobjects_arr[i]) for i in range(len(mobjects_arr))
+            ]
+        )
+    )
+class CreateScene(MovingCameraScene):
+    def construct(self):
+
+            readInitData("initdata")
+            print( createMergeSortSteps( unsorted_arr ) )
+            animateMergeSortSteps( self, merge_sort_steps_dic )
+            #print(merge_sort_steps_dic)
+            #print(merge_counter_steps_dic)
