@@ -61,27 +61,39 @@ def merge(lista_izquierda, lista_derecha):
 counter = 0
 a_izq_arr = []
 a_der_arr = []
+
+const_l = "L"
+const_r = "P"
+
+step_counter = 0
+dic_steps = {}
+
 def createMergeSortSteps( lista ):
     """
     Function to divide the array using merge-sort algorithm and store the steps in a list
     """
+    # if direction != None:
+    #     print("direction: ", direction)
 
-    global counter
+    global step_counter
+    global dic_steps
+    step_counter += 1
 
-    #print("counter: ", counter) 
+    dic_steps[step_counter] = [lista]
 
-    if counter == 0:
-        a_izq_arr.append(lista)
-    else:
-        a_der_arr.append(lista)
+    #print("lista: {} direccion {} counter {}", lista, direction, step_counter)
 
     if len(lista)<=1:
         return lista
     
-    createMergeSortSteps( lista[:len(lista)//2] )
-    createMergeSortSteps( lista[len(lista)//2:] )
+    L = createMergeSortSteps( lista[:len(lista)//2])
+    R = createMergeSortSteps( lista[len(lista)//2:])
 
-    counter += 1
+    createMergeSteps( L, R )
+
+def createMergeSteps( lista_izquierda, lista_derecha ):
+    print("lista_izquierda: {} lista_derecha: {}".format(lista_izquierda, lista_derecha))
+
 
 def main():
     global counter
@@ -91,13 +103,10 @@ def main():
     print(unsorted_arr)
     #print( merge_sort(unsorted_arr) )
     createMergeSortSteps( unsorted_arr[:len(unsorted_arr)//2] )
-    print(a_izq_arr)
-    print(a_der_arr)
-    counter = 0
-    a_izq_arr = []
-    a_der_arr = []
-    createMergeSortSteps( unsorted_arr[len(unsorted_arr)//2:] )
-    print(a_izq_arr)
-    print(a_der_arr)
+    print(dic_steps)
+    # createMergeSortSteps( unsorted_arr[len(unsorted_arr)//2:] )
+    # print(dic_steps)
+    # print(a_izq_arr)
+    # print(a_der_arr)
 if __name__ == "__main__":
     main()
