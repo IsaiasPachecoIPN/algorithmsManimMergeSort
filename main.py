@@ -1,4 +1,13 @@
+
+#Default values
+DEFAULT_BUFF = 0.25
+Y_DEFAULT_COORD = DEFAULT_BUFF * 3
+DEFAULT_BOX_HEIGHT = 1
+DEFAULT_BOX_WIDTH = 3
+DEFAULT_FRAME_WIDTH = 30
+
 from manim import *
+from utils import *
 
 #Default values
 unsorted_arr = []
@@ -80,37 +89,113 @@ def createMergeSortSteps( lista ):
 
     return merge(L, R)
 
-def animateMergeSortSteps( scene, steps_dic ):
 
-    first_elem = steps_dic[1]
-    print("first_elem: ", first_elem)
+def createMObjectsArr( arr ):
+    """
+        Funcion  to create scene mobjects from an array
+    """
+    mobject_arr = []
+    for i in range(len(arr)):
+        arr[i] = createElem(str(arr[i]))
+        #dic_mobjects[i] = arr[i]
+        mobject_arr.append(arr[i])
 
-    mobjects_arr = []
-    for i in steps_dic[1][0]:
-       result = VGroup( Text(str(i)) )
-       box = Rectangle(  # create a box
-       height=0.5, width=0.8, fill_color=BLUE, 
-       fill_opacity=0.5, stroke_color=BLUE,)
-       text = Text(str(i))
+    return mobject_arr
 
-       result.add(text, box)
-       mobjects_arr.append(result)
+def createStepsMobjects( steps_dic ):
+    mobjects_key = {}
 
-    for i in range(len(mobjects_arr)-1):
-        mobjects_arr[i+1].next_to(mobjects_arr[i], RIGHT)
+    for key in steps_dic:
+        mobj_arr = createMObjectsArr( steps_dic[key][0] )
+        mobjects_key[key] = mobj_arr
 
-    scene.play(
-        AnimationGroup(
-            *[
-                Write(mobjects_arr[i]) for i in range(len(mobjects_arr))
-            ]
-        )
-    )
+    return mobjects_key
+
+
+def getTreeLevel( unsorted_arr ):
+    """
+        Function to get the level of the tree
+    """
+    level = 1
+    while 2**level < len(unsorted_arr):
+        level += 1
+
+    return level
+
+def getTreeLevelNumberOfElements( unsoreted_arr ):
+    """
+        Function to get the number of elements in the tree level
+    """
+    return 2**getTreeLevel( unsoreted_arr )
+
+def animateMergeSortSteps( scene, steps_dic, unsorted_arr ):
+
+    tree_level = getTreeLevel( unsorted_arr )
+    tree_mobjects_dic = createStepsMobjects( steps_dic )
+
+    for i in range(1, tree_level+1):
+        if i == 1:
+            #Se agregan los primero mobjects
+            mobj_arr = tree_mobjects_dic[1]
+            print("mobj_arr: ", mobj_arr)
+            for i in range(len(mobj_arr)-1):
+                mobj_arr[i+1].next_to(mobj_arr[i], RIGHT, buff=DEFAULT_BUFF)
+            
+            scene.play(
+                AnimationGroup(
+                    *[
+                        Write(mobj_arr[i]) for i in range(len(mobj_arr))
+                    ]
+                )
+            )
+
+        #if the number is even then the direction of the new mobjects is down right fron the parent key
+        elif i % 2 == 0:
+            #Se agregan los mobjects
+            mobj_arr = tree_mobjects_dic[i]
+            print("mobj_arr: ", mobj_arr)
+            for i in range(len(mobj_arr)-1):
+                mobj_arr[i+1].next_to(mobj_arr[i], RIGHT, buff=DEFAULT_BUFF)
+                #Move objects to down
+                mobj_arr[i+1].shift(DOWN*(DEFAULT_BOX_HEIGHT + DEFAULT_BUFF))
+            
+            scene.play(
+                AnimationGroup(
+                    *[
+                        Write(mobj_arr[i]) for i in range(len(mobj_arr))
+                    ]
+                )
+            )
+
+    # #Arreglo de mobjects
+    # mobjects_arr = create_scene_mobjects( 1, steps_dic[1][0] )
+
+    # for i in range(len(mobjects_arr)-1):
+    #     mobjects_arr[i+1].next_to(mobjects_arr[i], RIGHT, buff=DEFAULT_BUFF)
+
+    # #Se anima la escena
+    # scene.play(
+    #     AnimationGroup(
+    #         *[
+    #             Write(mobjects_arr[i]) for i in range(len(mobjects_arr))
+    #         ]
+    #     )
+    # )
+
+    #print( "Monjects_res: ", createStepsMobjects( steps_dic ) )
+
 class CreateScene(MovingCameraScene):
     def construct(self):
 
             readInitData("initdata")
+            self.camera.frame.set(width = DEFAULT_FRAME_WIDTH)
+            self.camera.frame.shift(RIGHT * (DEFAULT_FRAME_WIDTH/2) - (DEFAULT_BOX_WIDTH))
+            self.camera.frame.shift(DOWN* (self.camera.frame.get_height()/4) + DEFAULT_BOX_HEIGHT) 
             print( createMergeSortSteps( unsorted_arr ) )
-            animateMergeSortSteps( self, merge_sort_steps_dic )
+            animateMergeSortSteps( self, merge_sort_steps_dic, unsorted_arr)
+            #print(merge_sort_steps_dic)
+            #print( create_scene_mobjects( 1, merge_sort_steps_dic[1][0] ) )
+            #print(merge_arr_steps)
+            self.wait(1)
             #print(merge_sort_steps_dic)
             #print(merge_counter_steps_dic)
