@@ -1,17 +1,19 @@
+from manim import *
+from utils import *
 
 #Default values
 DEFAULT_BUFF = 0.25
 Y_DEFAULT_COORD = DEFAULT_BUFF * 3
 DEFAULT_BOX_HEIGHT = 1
-DEFAULT_BOX_WIDTH = 3
-DEFAULT_FRAME_WIDTH = 30
-
-from manim import *
-from utils import *
-
-#Default values
-unsorted_arr = []
-merge_arr_steps = []
+DEFAULT_BOX_WIDTH = 2
+DEFAULT_FRAME_WIDTH =30
+DEFAULT_ELEMENTS_COLOR = BLUE
+DEFAULT_INDICATE_COLOR = YELLOW
+DEFAULT_INDICATE_L_COLOR = YELLOW
+#Merge elements
+DEFAULT_MERGE_COLOR = PURPLE
+DEFAULT_MERGE_PARENT_INDICATE_COLOR = BLUE_A
+DEFAULT_MERGE_INDICATE_COLOR = YELLOW
 
 def readInitData( file ):
     """
@@ -22,7 +24,6 @@ def readInitData( file ):
 
     with open(file, "r") as f:
         data = f.readlines()
-        counter = 0
         for line in data:
             line = line.strip()
             if "unsorted_arr" in line:
@@ -30,22 +31,27 @@ def readInitData( file ):
                 unsorted_arr = arr[1].split(",")
                 unsorted_arr = [ int(x) for x in unsorted_arr  ]
 
-merge_counter = 0
-merge_counter_steps_dic = {}
-def merge(lista_izquierda, lista_derecha):
-
-    global merge_counter
-    global merge_counter_steps_dic
-
-    merge_counter += 1
+def merge(lista_izquierda, lista_derecha, scene=None, parent=None):
     resultado = []
 
-    #mostrar las listas en la misma linea
-    #print("lista_izquierda: {} lista_derecha: {}".format(lista_izquierda, lista_derecha))
-    merge_arr_steps.insert(0, [lista_izquierda, lista_derecha])
+    # Shows the elements to merge
+    mobj_L = createMObjectsArr( lista_izquierda, show_text=False )
+    mobr_R = createMObjectsArr( lista_derecha , show_text=False)
 
-    #print("lista_izquierda: ", lista_izquierda)
-    #print("lista_derecha: ", lista_derecha)
+    mobj_L.next_to(parent, DOWN, buff=DEFAULT_BUFF)
+    mobj_L.shift(LEFT * (parent.get_width() /2))
+
+    mobr_R.next_to(parent, DOWN, buff=DEFAULT_BUFF)
+    mobr_R.shift(RIGHT * (parent.get_width() /2))
+
+    scene.play(
+            Indicate(mobj_L, color=DEFAULT_MERGE_PARENT_INDICATE_COLOR),
+            Indicate(mobr_R, color=DEFAULT_MERGE_PARENT_INDICATE_COLOR),
+    )
+
+    #Remove the elements from the scene
+    scene.remove(mobj_L)
+    scene.remove(mobr_R)
 
     i = 0
     j = 0
@@ -61,141 +67,82 @@ def merge(lista_izquierda, lista_derecha):
     resultado += lista_izquierda[i:]
     resultado += lista_derecha[j:]
 
-    #print("resultado: ", resultado)
-    merge_counter_steps_dic[merge_counter] = resultado
+    #Last mobject in the scene
+    last_mobj = scene.mobjects[-1]
+
+    #Shows the result of the merge
+    mobj_res = createMObjectsArr( resultado, color=DEFAULT_MERGE_COLOR)
+    mobj_res.next_to(last_mobj, DOWN, buff=DEFAULT_BUFF)
+    mobj_res.shift(LEFT * (last_mobj.get_width()))
+
+    scene.play(
+            Indicate(mobj_res, color=DEFAULT_MERGE_INDICATE_COLOR),
+    )
+
     return resultado
 
-step_counter = 0
-merge_sort_steps_dic = {}
 
-def createMergeSortSteps( lista ):
+def createMergeSortAnimation( lista, scene, parent = None, direction=None):
     """
     Function to divide the array using merge-sort algorithm and store the steps in a list
     """
-    # if direction != None:
-    #     print("direction: ", direction)
+    m_objects_vg = createMObjectsArr( lista )
 
-    global step_counter
-    global merge_sort_steps_dic
-    step_counter += 1
+    if direction == None:
+        #scene.add(m_objects_vg)
+        scene.camera.frame.set(width = (m_objects_vg.get_width() + DEFAULT_BUFF*2)*2)
+        scene.camera.frame.shift(RIGHT * (m_objects_vg.get_width()/2) - (DEFAULT_BOX_WIDTH))
+        text = Text("Merge Sort Algorithm")
+        text.next_to(m_objects_vg, UP, buff=DEFAULT_BUFF)
+        scene.play(
+            AnimationGroup(
+                Write(text),
+                Write(m_objects_vg),
+            )
+        )
+   
+    elif direction == "L":
+        m_objects_vg.next_to(parent, DOWN, buff=DEFAULT_BUFF)
+        m_objects_vg.shift(LEFT * (parent.get_width() /2))
 
-    merge_sort_steps_dic[step_counter] = [lista]
+        scene.play(
+                Indicate(m_objects_vg, color=DEFAULT_INDICATE_COLOR),
+        )
+
+    elif direction == "R":
+        m_objects_vg.next_to(parent, DOWN, buff=DEFAULT_BUFF)
+        m_objects_vg.shift(RIGHT * (parent.get_width() /2))
+        scene.play(
+                Indicate(m_objects_vg, color=DEFAULT_INDICATE_COLOR),
+        )
 
     if len(lista)<=1:
         return lista
     
-    L = createMergeSortSteps( lista[:len(lista)//2])
-    R = createMergeSortSteps( lista[len(lista)//2:])
+    L = createMergeSortAnimation( lista[:len(lista)//2], scene=scene, parent=m_objects_vg, direction="L")
+    R = createMergeSortAnimation( lista[len(lista)//2:], scene=scene, parent=m_objects_vg, direction="R")
 
-    return merge(L, R)
+    return merge(L, R, scene=scene, parent=m_objects_vg)
 
 
-def createMObjectsArr( arr ):
+def createMObjectsArr( arr, color=DEFAULT_ELEMENTS_COLOR, show_text=True ):
     """
-        Funcion  to create scene mobjects from an array
+        Funcion  to create a vgroup with the elements of the array
     """
-    mobject_arr = []
+    vg = VGroup()
+    
     for i in range(len(arr)):
-        arr[i] = createElem(str(arr[i]))
-        #dic_mobjects[i] = arr[i]
-        mobject_arr.append(arr[i])
+        obj = createElem(str(arr[i]), color=color, show_text=show_text)
+        obj.shift(RIGHT * (DEFAULT_BOX_WIDTH + DEFAULT_BUFF) * i)
+        vg.add(obj)
 
-    return mobject_arr
+    return vg
 
-def createStepsMobjects( steps_dic ):
-    mobjects_key = {}
-
-    for key in steps_dic:
-        mobj_arr = createMObjectsArr( steps_dic[key][0] )
-        mobjects_key[key] = mobj_arr
-
-    return mobjects_key
-
-
-def getTreeLevel( unsorted_arr ):
-    """
-        Function to get the level of the tree
-    """
-    level = 1
-    while 2**level < len(unsorted_arr):
-        level += 1
-
-    return level
-
-def getTreeLevelNumberOfElements( unsoreted_arr ):
-    """
-        Function to get the number of elements in the tree level
-    """
-    return 2**getTreeLevel( unsoreted_arr )
-
-def animateMergeSortSteps( scene, steps_dic, unsorted_arr ):
-
-    tree_level = getTreeLevel( unsorted_arr )
-    tree_mobjects_dic = createStepsMobjects( steps_dic )
-
-    for i in range(1, tree_level+1):
-        if i == 1:
-            #Se agregan los primero mobjects
-            mobj_arr = tree_mobjects_dic[1]
-            print("mobj_arr: ", mobj_arr)
-            for i in range(len(mobj_arr)-1):
-                mobj_arr[i+1].next_to(mobj_arr[i], RIGHT, buff=DEFAULT_BUFF)
-            
-            scene.play(
-                AnimationGroup(
-                    *[
-                        Write(mobj_arr[i]) for i in range(len(mobj_arr))
-                    ]
-                )
-            )
-
-        #if the number is even then the direction of the new mobjects is down right fron the parent key
-        elif i % 2 == 0:
-            #Se agregan los mobjects
-            mobj_arr = tree_mobjects_dic[i]
-            print("mobj_arr: ", mobj_arr)
-            for i in range(len(mobj_arr)-1):
-                mobj_arr[i+1].next_to(mobj_arr[i], RIGHT, buff=DEFAULT_BUFF)
-                #Move objects to down
-                mobj_arr[i+1].shift(DOWN*(DEFAULT_BOX_HEIGHT + DEFAULT_BUFF))
-            
-            scene.play(
-                AnimationGroup(
-                    *[
-                        Write(mobj_arr[i]) for i in range(len(mobj_arr))
-                    ]
-                )
-            )
-
-    # #Arreglo de mobjects
-    # mobjects_arr = create_scene_mobjects( 1, steps_dic[1][0] )
-
-    # for i in range(len(mobjects_arr)-1):
-    #     mobjects_arr[i+1].next_to(mobjects_arr[i], RIGHT, buff=DEFAULT_BUFF)
-
-    # #Se anima la escena
-    # scene.play(
-    #     AnimationGroup(
-    #         *[
-    #             Write(mobjects_arr[i]) for i in range(len(mobjects_arr))
-    #         ]
-    #     )
-    # )
-
-    #print( "Monjects_res: ", createStepsMobjects( steps_dic ) )
 
 class CreateScene(MovingCameraScene):
     def construct(self):
-
-            readInitData("initdata")
-            self.camera.frame.set(width = DEFAULT_FRAME_WIDTH)
-            self.camera.frame.shift(RIGHT * (DEFAULT_FRAME_WIDTH/2) - (DEFAULT_BOX_WIDTH))
-            self.camera.frame.shift(DOWN* (self.camera.frame.get_height()/4) + DEFAULT_BOX_HEIGHT) 
-            print( createMergeSortSteps( unsorted_arr ) )
-            animateMergeSortSteps( self, merge_sort_steps_dic, unsorted_arr)
-            #print(merge_sort_steps_dic)
-            #print( create_scene_mobjects( 1, merge_sort_steps_dic[1][0] ) )
-            #print(merge_arr_steps)
-            self.wait(1)
-            #print(merge_sort_steps_dic)
-            #print(merge_counter_steps_dic)
+        readInitData("initdata")
+        self.camera.frame.set(width = DEFAULT_FRAME_WIDTH)
+        self.camera.frame.shift(DOWN* (self.camera.frame.get_height()/4) + DEFAULT_BOX_HEIGHT) 
+        createMergeSortAnimation( unsorted_arr, self )
+        self.wait(1)
