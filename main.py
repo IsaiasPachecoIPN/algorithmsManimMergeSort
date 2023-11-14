@@ -1,5 +1,6 @@
 from manim import *
 from utils import *
+import math
 
 #Default values
 DEFAULT_BUFF = 0.25
@@ -14,6 +15,7 @@ DEFAULT_INDICATE_L_COLOR = YELLOW
 DEFAULT_MERGE_COLOR = PURPLE
 DEFAULT_MERGE_PARENT_INDICATE_COLOR = BLUE_A
 DEFAULT_MERGE_INDICATE_COLOR = YELLOW
+DEFAULT_IS_MARGE_SORT = False
 
 def readInitData( file ):
     """
@@ -21,6 +23,7 @@ def readInitData( file ):
     (param) file: File
     """
     global unsorted_arr
+    global DEFAULT_IS_MARGE_SORT
 
     with open(file, "r") as f:
         data = f.readlines()
@@ -30,6 +33,12 @@ def readInitData( file ):
                 arr = line.split(":")
                 unsorted_arr = arr[1].split(",")
                 unsorted_arr = [ int(x) for x in unsorted_arr  ]
+            if "is_marge_sort" in line:
+                bool_str = line.split(":")[1]
+                if bool_str == "True":
+                    DEFAULT_IS_MARGE_SORT = True
+
+    print("Is marge sort: ", DEFAULT_IS_MARGE_SORT)
 
 def merge(lista_izquierda, lista_derecha, scene=None, parent=None):
     resultado = []
@@ -81,25 +90,50 @@ def merge(lista_izquierda, lista_derecha, scene=None, parent=None):
 
     return resultado
 
+def treeLevel( unsorted_arr ):
+    """
+    Function to calculate the tree level
+    """
+    return int(math.log(len(unsorted_arr), 2))
+
+def getMaxValue( unsorted_arr ):
+    """
+    Function to get the max value of the array
+    """
+    return max(unsorted_arr)
 
 def createMergeSortAnimation( lista, scene, parent = None, direction=None):
     """
     Function to divide the array using merge-sort algorithm and store the steps in a list
     """
+    global unsorted_arr
+    global DEFAULT_BOX_HEIGHT
+    global DEFAULT_BOX_WIDTH
+
     m_objects_vg = createMObjectsArr( lista )
 
     if direction == None:
         #scene.add(m_objects_vg)
         scene.camera.frame.set(width = (m_objects_vg.get_width() + DEFAULT_BUFF*2)*2)
-        scene.camera.frame.shift(RIGHT * (m_objects_vg.get_width()/2) - (DEFAULT_BOX_WIDTH))
-        text = Text("Merge Sort Algorithm")
+        scene.camera.frame.shift(RIGHT * (m_objects_vg.get_width()/2) + (DEFAULT_BOX_WIDTH/2))        
+        scene.camera.frame.shift( DOWN * (scene.camera.frame.get_height() - (2**treeLevel(unsorted_arr) * (DEFAULT_BOX_HEIGHT + DEFAULT_BUFF) + DEFAULT_BUFF*2)) /2 )
+
+        if not DEFAULT_IS_MARGE_SORT:
+            text = Text("Merge Sort Algorithm")
+        else:
+            text = Text("Marge Sort Algorithm")
         text.next_to(m_objects_vg, UP, buff=DEFAULT_BUFF)
-        scene.play(
-            AnimationGroup(
-                Write(text),
-                Write(m_objects_vg),
+
+        if not DEFAULT_IS_MARGE_SORT:
+            scene.play(
+                AnimationGroup(
+                    Write(text),
+                    Write(m_objects_vg),
+                )
             )
-        )
+        else:
+            scene.add(text)
+            scene.add(m_objects_vg)
    
     elif direction == "L":
         m_objects_vg.next_to(parent, DOWN, buff=DEFAULT_BUFF)
@@ -129,10 +163,13 @@ def createMObjectsArr( arr, color=DEFAULT_ELEMENTS_COLOR, show_text=True ):
     """
         Funcion  to create a vgroup with the elements of the array
     """
-    vg = VGroup()
+    if not DEFAULT_IS_MARGE_SORT:
+        vg = VGroup()
+    else:
+        vg = Group()
     
     for i in range(len(arr)):
-        obj = createElem(str(arr[i]), color=color, show_text=show_text)
+        obj = createElem(str(arr[i]), color=color, show_text=show_text, is_marge_sort=DEFAULT_IS_MARGE_SORT, max_value=getMaxValue(unsorted_arr), unsorted_arr=unsorted_arr)
         obj.shift(RIGHT * (DEFAULT_BOX_WIDTH + DEFAULT_BUFF) * i)
         vg.add(obj)
 
@@ -141,8 +178,11 @@ def createMObjectsArr( arr, color=DEFAULT_ELEMENTS_COLOR, show_text=True ):
 
 class CreateScene(MovingCameraScene):
     def construct(self):
+
+
         readInitData("initdata")
         self.camera.frame.set(width = DEFAULT_FRAME_WIDTH)
-        self.camera.frame.shift(DOWN* (self.camera.frame.get_height()/4) + DEFAULT_BOX_HEIGHT) 
+        # numberplane = NumberPlane()
+        # self.add(numberplane)
         createMergeSortAnimation( unsorted_arr, self )
         self.wait(1)
